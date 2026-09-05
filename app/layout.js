@@ -1,5 +1,17 @@
+import Script from "next/script";
 import "./globals.css";
 import PwaInstall from "../components/PwaInstall";
+import ThemeToggle from "../components/ThemeToggle";
+
+const THEME_INIT_SCRIPT = `
+(function () {
+  try {
+    var stored = localStorage.getItem("pv-theme");
+    var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", theme);
+  } catch (e) {}
+})();
+`;
 
 export const metadata = {
   title: "Prompt Vault",
@@ -35,7 +47,13 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="fr">
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
+      </head>
       <body>
+        <ThemeToggle />
         {children}
         <PwaInstall />
       </body>

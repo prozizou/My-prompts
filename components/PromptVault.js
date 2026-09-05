@@ -186,7 +186,15 @@ export default function PromptVault() {
     }
   }
 
-  if (!authReady) return <div className="loading-screen">Chargement…</div>;
+  if (!authReady) {
+    return (
+      <div className="loading-screen">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/icons/icon-96.png" alt="" className="loading-mark" width={60} height={60} />
+        <p className="loading-text">Ouverture de votre coffre…</p>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
