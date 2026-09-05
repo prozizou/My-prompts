@@ -1,0 +1,17 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.uid === '6yHkYgmyXiNra52YXYrfRp5BV0l2'",
+        ".write": "auth != null && auth.uid === $uid && auth.uid === '6yHkYgmyXiNra52YXYrfRp5BV0l2'",
+        "prompts": {
+          "$promptId": {
+            ".validate": "newData.hasChildren(['title','content','category','favorite','createdAt','updatedAt']) || !newData.exists()"
+          }
+        }
+      }
+    },
+    ".read": false,
+    ".write": false
+  }
+}
