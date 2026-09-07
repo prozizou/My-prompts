@@ -11,6 +11,7 @@ import {
 } from "firebase/auth";
 import { onValue, push, ref, remove, set, update } from "firebase/database";
 import { auth, db, OWNER_UID } from "../lib/firebase";
+import { SEED_PROMPTS } from "../lib/seedPrompts";
 
 const provider = new GoogleAuthProvider();
 
@@ -112,6 +113,11 @@ export default function PromptVault() {
     return list;
   }, [prompts, activeFilter, search, sort]);
 
+  const missingSeedPrompts = useMemo(() => {
+    const existingIds = new Set(prompts.map((prompt) => prompt.id));
+    return SEED_PROMPTS.filter((seed) => !existingIds.has(seed.id));
+  }, [prompts]);
+
   const favoritesCount = prompts.filter((prompt) => prompt.favorite).length;
   const viewTitle = activeFilter === "favorites"
     ? "Favoris"
@@ -160,6 +166,30 @@ export default function PromptVault() {
       setEditingPrompt(null);
     } catch (error) {
       notify(`Enregistrement impossible : ${error.message}`);
+    }
+  }
+
+  async function importSeedPrompts() {
+    if (!user || user.uid !== OWNER_UID || missingSeedPrompts.length === 0) return;
+    const now = Date.now();
+    const updates = {};
+    missingSeedPrompts.forEach((seed) => {
+      updates[`users/${user.uid}/prompts/${seed.id}`] = {
+        title: seed.title,
+        content: seed.content,
+        category: seed.category,
+        tags: seed.tags,
+        favorite: false,
+        createdAt: now,
+        updatedAt: now
+      };
+    });
+
+    try {
+      await update(ref(db), updates);
+      notify(`${missingSeedPrompts.length} prompt(s) importé(s).`);
+    } catch (error) {
+      notify(`Import impossible : ${error.message}`);
     }
   }
 
@@ -223,6 +253,11 @@ export default function PromptVault() {
             <div><strong>Prompt Vault</strong><span>Ma bibliothèque IA</span></div>
           </div>
           <button className="btn btn-primary btn-block" onClick={openCreate}>+ Nouveau prompt</button>
+          {missingSeedPrompts.length > 0 && (
+            <button className="btn btn-secondary btn-block" onClick={importSeedPrompts}>
+              Importer {missingSeedPrompts.length} prompt{missingSeedPrompts.length > 1 ? "s" : ""} prédéfini{missingSeedPrompts.length > 1 ? "s" : ""}
+            </button>
+          )}
 
           <nav className="nav">
             <button className={`nav-item ${activeFilter === "all" ? "active" : ""}`} onClick={() => { setActiveFilter("all"); setSidebarOpen(false); }}>

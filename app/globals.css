@@ -221,6 +221,7 @@ button{cursor:pointer}
 .btn-primary:hover{box-shadow:0 10px 26px rgba(99,102,241,.4);filter:brightness(1.04)}
 .btn-secondary{background:var(--panel-2);color:var(--text)}
 .btn-secondary:hover{filter:brightness(.97)}
+.sidebar-top .btn-secondary{margin-top:10px}
 [data-theme="dark"] .btn-secondary:hover{filter:brightness(1.15)}
 .btn-danger{background:var(--danger-bg);color:var(--danger)}
 .btn-block{width:100%}
