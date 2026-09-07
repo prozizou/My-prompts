@@ -348,7 +348,7 @@ button{cursor:pointer}
   border-top:1px solid var(--line);margin-top:14px;padding-top:13px;gap:8px;
   transition:border-color .3s var(--ease);
 }
-.card-actions{display:flex;gap:6px}
+.card-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .card-actions button{
   border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:9px;padding:8px 10px;font-weight:700;font-size:12px;
   transition:background-color .2s var(--ease),border-color .2s var(--ease),transform .15s var(--ease);

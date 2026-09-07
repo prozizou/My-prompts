@@ -207,13 +207,21 @@ export default function PromptVault() {
       .catch((error) => notify(`Suppression impossible : ${error.message}`));
   }
 
-  async function copyPrompt(content) {
+  async function copyText(text, message) {
     try {
-      await navigator.clipboard.writeText(content);
-      notify("Prompt copié.");
+      await navigator.clipboard.writeText(text);
+      notify(message);
     } catch {
       notify("Copie impossible sur ce navigateur.");
     }
+  }
+
+  function copyTitle(title) {
+    return copyText(`/${title}`, "Titre copié.");
+  }
+
+  function copyPrompt(content) {
+    return copyText(content, "Description copiée.");
   }
 
   if (!authReady) {
@@ -323,7 +331,8 @@ export default function PromptVault() {
                 <div className="card-footer">
                   <span className="card-date">{formatDate(prompt.updatedAt || prompt.createdAt)}</span>
                   <div className="card-actions">
-                    <button onClick={() => copyPrompt(prompt.content)}>Copier</button>
+                    <button onClick={() => copyTitle(prompt.title)}>Copier /titre</button>
+                    <button onClick={() => copyPrompt(prompt.content)}>Copier description</button>
                     <button onClick={() => { setEditingPrompt(prompt); setModalOpen(true); }}>Modifier</button>
                     <button className="delete" onClick={() => deletePrompt(prompt)}>Supprimer</button>
                   </div>
