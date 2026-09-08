@@ -14,12 +14,12 @@ Version Next.js de l'application personnelle de gestion de prompts IA.
 
 - Connexion Google
 - Accès réservé à un seul UID Firebase
-- Ajout / modification / suppression des prompts
-- Recherche instantanée
-- Catégories et tags
-- Favoris
-- Copie en un clic
-- Tri
+- Ajout / modification / suppression des prompts (suppression sécurisée par confirmation, accessible via le menu ⋯)
+- Cartes compactes (description sur 2-3 lignes, « Voir plus », carte entière cliquable)
+- Recherche instantanée (titre, contenu, tags, catégorie) + panneau Filtres (catégorie, favoris, tri dont « plus utilisé »)
+- Catégories et tags, avec recherche et repli de la liste de catégories dans la barre latérale
+- Favoris (étoile animée)
+- Copie du titre (`/titre`) et copie/« Utiliser » du prompt (marque un compteur d'utilisation)
 - Interface responsive mobile / desktop
 
 ## Installation
