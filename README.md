@@ -13,7 +13,7 @@ Version Next.js de l'application personnelle de gestion de prompts IA.
 ## Fonctions
 
 - Connexion Google
-- Accès réservé à un seul UID Firebase
+- Accès réservé aux comptes autorisés (liste d'emails partagée entre plusieurs utilisateurs)
 - Ajout / modification / suppression des prompts (suppression sécurisée par confirmation, accessible via le menu ⋯)
 - Cartes compactes (description sur 2-3 lignes, « Voir plus », carte entière cliquable)
 - Recherche instantanée (titre, contenu, tags, catégorie) + panneau Filtres (catégorie, favoris, tri dont « plus utilisé »)
@@ -35,7 +35,19 @@ Puis ouvrez `http://localhost:3000`.
 
 La configuration actuelle est déjà enregistrée dans `.env.local`.
 
-Les règles RTDB se trouvent dans `firebase.rules.json`. Elles limitent la lecture et l'écriture à l'UID propriétaire configuré.
+Les règles RTDB se trouvent dans `firebase.rules.json`. Elles limitent la lecture et l'écriture aux comptes Google dont l'email figure dans la liste autorisée.
+
+### Accès partagé (plusieurs comptes)
+
+Tous les comptes autorisés lisent et écrivent la **même** bibliothèque, stockée à l'emplacement fixe `users/{NEXT_PUBLIC_OWNER_UID}/prompts` — peu importe l'UID Firebase de la personne connectée.
+
+La liste des emails autorisés est définie à deux endroits qui doivent rester synchronisés :
+- `lib/firebase.js` (`ALLOWED_EMAILS`) — contrôle l'accès côté application.
+- `firebase.rules.json` — contrôle l'accès côté base de données (la vraie sécurité).
+
+Pour ajouter ou retirer quelqu'un :
+1. Modifiez `ALLOWED_EMAILS` dans `lib/firebase.js` et la même liste dans `firebase.rules.json`, puis déployez (push sur `main`).
+2. **Copiez le contenu de `firebase.rules.json` dans Firebase Console > Realtime Database > Rules, puis cliquez sur Publier.** Ce fichier n'est pas déployé automatiquement — c'est la seule étape manuelle indispensable, sans elle la personne ajoutée aura une erreur de permission malgré le code à jour.
 
 ## Déploiement Vercel
 
@@ -47,7 +59,7 @@ Les règles RTDB se trouvent dans `firebase.rules.json`. Elles limitent la lectu
 
 ## Bibliothèque de prompts prédéfinis
 
-99 prompts prêts à l'emploi (styles, photographie, rendu 3D, lumière, branding, univers, outils...) sont disponibles dans `lib/seedPrompts.js`. Une fois connecté avec le compte propriétaire, un bouton **« Importer N prompts prédéfinis »** apparaît dans la barre latérale tant qu'il en manque : il écrit directement les prompts manquants dans `users/{uid}/prompts` via votre session Firebase déjà authentifiée (donc respecte les règles RTDB, sans exposer aucune clé). Chaque prompt a un identifiant fixe : l'import peut être relancé sans jamais créer de doublons.
+224 prompts prêts à l'emploi (styles, photographie, rendu 3D, lumière, branding, univers, commandes ChatGPT...) sont disponibles dans `lib/seedPrompts.js`. Une fois connecté avec un compte autorisé, un bouton **« Importer N prompts prédéfinis »** apparaît dans la barre latérale tant qu'il en manque : il écrit directement les prompts manquants dans la bibliothèque partagée via votre session Firebase déjà authentifiée (donc respecte les règles RTDB, sans exposer aucune clé). Chaque prompt a un identifiant fixe : l'import peut être relancé sans jamais créer de doublons.
 
 ## Important
 
