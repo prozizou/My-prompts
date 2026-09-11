@@ -1,19 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  GoogleAuthProvider,
-  getRedirectResult,
-  onAuthStateChanged,
-  signInWithPopup,
-  signInWithRedirect,
-  signOut
-} from "firebase/auth";
 import { onValue, push, ref, remove, set, update } from "firebase/database";
-import { auth, db, OWNER_UID } from "../lib/firebase";
+import { db, OWNER_UID } from "../lib/firebase";
 import { SEED_PROMPTS } from "../lib/seedPrompts";
 
-const provider = new GoogleAuthProvider();
 const VISIBLE_CATEGORY_LIMIT = 8;
 const CONTENT_PREVIEW_THRESHOLD = 160;
 
@@ -42,8 +33,7 @@ function formatDate(timestamp) {
 }
 
 export default function PromptVault() {
-  const [user, setUser] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [prompts, setPrompts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
@@ -67,35 +57,20 @@ export default function PromptVault() {
   };
 
   useEffect(() => {
-    getRedirectResult(auth).catch((error) => notify(`Connexion : ${error.message}`));
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser && currentUser.uid !== OWNER_UID) {
-        notify("Ce compte n'est pas autorisé.");
-        await signOut(auth);
-        setUser(null);
-      } else {
-        setUser(currentUser);
-      }
-      setAuthReady(true);
-    });
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setPrompts([]);
-      return undefined;
-    }
-    const promptsRef = ref(db, `users/${user.uid}/prompts`);
+    const promptsRef = ref(db, `users/${OWNER_UID}/prompts`);
     return onValue(
       promptsRef,
       (snapshot) => {
         const data = snapshot.val() || {};
         setPrompts(Object.entries(data).map(([id, value]) => normalizePrompt(id, value)));
+        setLoading(false);
       },
-      (error) => notify(`Erreur Firebase : ${error.message}`)
+      (error) => {
+        notify(`Erreur Firebase : ${error.message}`);
+        setLoading(false);
+      }
     );
-  }, [user]);
+  }, []);
 
   const categories = useMemo(() => {
     const counts = {};
@@ -179,18 +154,6 @@ export default function PromptVault() {
     });
   }
 
-  async function login() {
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      if (["auth/popup-blocked", "auth/cancelled-popup-request", "auth/operation-not-supported-in-this-environment"].includes(error.code)) {
-        await signInWithRedirect(auth, provider);
-      } else {
-        notify(`Connexion impossible : ${error.message}`);
-      }
-    }
-  }
-
   function openCreate() {
     setEditingPrompt(null);
     setModalOpen(true);
@@ -203,7 +166,6 @@ export default function PromptVault() {
   }
 
   async function savePrompt(formData) {
-    if (!user || user.uid !== OWNER_UID) return;
     const now = Date.now();
     const payload = {
       title: formData.title.trim(),
@@ -216,10 +178,10 @@ export default function PromptVault() {
 
     try {
       if (editingPrompt) {
-        await update(ref(db, `users/${user.uid}/prompts/${editingPrompt.id}`), payload);
+        await update(ref(db, `users/${OWNER_UID}/prompts/${editingPrompt.id}`), payload);
         notify("Prompt modifié.");
       } else {
-        await set(push(ref(db, `users/${user.uid}/prompts`)), { ...payload, createdAt: now, usageCount: 0, lastUsedAt: 0 });
+        await set(push(ref(db, `users/${OWNER_UID}/prompts`)), { ...payload, createdAt: now, usageCount: 0, lastUsedAt: 0 });
         notify("Prompt enregistré.");
       }
       setModalOpen(false);
@@ -230,11 +192,11 @@ export default function PromptVault() {
   }
 
   async function importSeedPrompts() {
-    if (!user || user.uid !== OWNER_UID || missingSeedPrompts.length === 0) return;
+    if (missingSeedPrompts.length === 0) return;
     const now = Date.now();
     const updates = {};
     missingSeedPrompts.forEach((seed) => {
-      updates[`users/${user.uid}/prompts/${seed.id}`] = {
+      updates[`users/${OWNER_UID}/prompts/${seed.id}`] = {
         title: seed.title,
         content: seed.content,
         category: seed.category,
@@ -258,7 +220,7 @@ export default function PromptVault() {
   async function toggleFavorite(prompt) {
     setPulsingId(prompt.id);
     window.setTimeout(() => setPulsingId((current) => (current === prompt.id ? null : current)), 400);
-    await update(ref(db, `users/${user.uid}/prompts/${prompt.id}`), {
+    await update(ref(db, `users/${OWNER_UID}/prompts/${prompt.id}`), {
       favorite: !prompt.favorite,
       updatedAt: Date.now()
     })
@@ -269,7 +231,7 @@ export default function PromptVault() {
   async function deletePrompt(prompt) {
     setOpenMenuId(null);
     if (!window.confirm(`Supprimer « ${prompt.title} » ? Cette action est irréversible.`)) return;
-    await remove(ref(db, `users/${user.uid}/prompts/${prompt.id}`))
+    await remove(ref(db, `users/${OWNER_UID}/prompts/${prompt.id}`))
       .then(() => notify("Prompt supprimé."))
       .catch((error) => notify(`Suppression impossible : ${error.message}`));
   }
@@ -294,37 +256,19 @@ export default function PromptVault() {
 
   async function usePrompt(prompt) {
     await copyText(prompt.content, "Prompt copié et marqué comme utilisé.");
-    update(ref(db, `users/${user.uid}/prompts/${prompt.id}`), {
+    update(ref(db, `users/${OWNER_UID}/prompts/${prompt.id}`), {
       usageCount: (prompt.usageCount || 0) + 1,
       lastUsedAt: Date.now()
     }).catch(() => {});
   }
 
-  if (!authReady) {
+  if (loading) {
     return (
       <div className="loading-screen">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/icons/icon-96.png" alt="" className="loading-mark" width={60} height={60} />
-        <p className="loading-text">Ouverture de votre coffre…</p>
+        <p className="loading-text">Chargement de vos prompts…</p>
       </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <section className="login-view">
-        <div className="login-card">
-          <div className="brand-mark">P</div>
-          <p className="eyebrow">Bibliothèque personnelle</p>
-          <h1>Prompt Vault</h1>
-          <p className="muted">Stockez, classez et retrouvez vos prompts IA depuis Firebase Realtime Database.</p>
-          <button className="btn btn-primary btn-block" onClick={login}>
-            <span className="google-dot">G</span> Se connecter avec Google
-          </button>
-          <p className="security-note">L'accès est limité à votre compte Firebase.</p>
-        </div>
-        {toast && <div className="toast show">{toast}</div>}
-      </section>
     );
   }
 
@@ -384,13 +328,6 @@ export default function PromptVault() {
               <button className="category-toggle" onClick={() => setCategoriesExpanded(false)}>Réduire</button>
             )}
           </div>
-        </div>
-
-        <div className="profile">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={user.photoURL || "/avatar.svg"} alt="Avatar" />
-          <div className="profile-text"><strong>{user.displayName || "Propriétaire"}</strong><span>{user.email}</span></div>
-          <button className="icon-btn" title="Déconnexion" onClick={() => signOut(auth)}>↪</button>
         </div>
       </aside>
 
