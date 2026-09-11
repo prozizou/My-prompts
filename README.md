@@ -1,19 +1,17 @@
 # Prompt Vault — Next.js + Firebase RTDB
 
-Version Next.js de l'application personnelle de gestion de prompts IA.
+Version Next.js de l'application de gestion de prompts IA. **Accès libre, sans connexion.**
 
 ## Stack
 
 - Next.js 16 (App Router)
 - React
-- Firebase Authentication (Google)
 - Firebase Realtime Database
 - CSS natif
 
 ## Fonctions
 
-- Connexion Google
-- Accès réservé aux comptes autorisés (liste d'emails partagée entre plusieurs utilisateurs)
+- Accès direct, sans authentification ni compte à créer
 - Ajout / modification / suppression des prompts (suppression sécurisée par confirmation, accessible via le menu ⋯)
 - Cartes compactes (description sur 2-3 lignes, « Voir plus », carte entière cliquable)
 - Recherche instantanée (titre, contenu, tags, catégorie) + panneau Filtres (catégorie, favoris, tri dont « plus utilisé »)
@@ -35,19 +33,11 @@ Puis ouvrez `http://localhost:3000`.
 
 La configuration actuelle est déjà enregistrée dans `.env.local`.
 
-Les règles RTDB se trouvent dans `firebase.rules.json`. Elles limitent la lecture et l'écriture aux comptes Google dont l'email figure dans la liste autorisée.
+Les règles RTDB se trouvent dans `firebase.rules.json`. **Il n'y a plus d'authentification** : la lecture et l'écriture sont ouvertes à tous sur l'emplacement fixe `users/{NEXT_PUBLIC_OWNER_UID}/prompts` (le chemin lui-même reste le seul filtre — personne n'a besoin de compte pour lire ou écrire les prompts).
 
-### Accès partagé (plusieurs comptes)
+> ⚠️ Toute personne connaissant l'URL de l'application peut lire, modifier ou supprimer n'importe quel prompt de la bibliothèque : c'est le prix de la suppression totale de l'authentification. Adapté à un usage privé/interne ou à un outil volontairement public ; à reconsidérer si les prompts doivent rester confidentiels.
 
-Tous les comptes autorisés lisent et écrivent la **même** bibliothèque, stockée à l'emplacement fixe `users/{NEXT_PUBLIC_OWNER_UID}/prompts` — peu importe l'UID Firebase de la personne connectée.
-
-La liste des emails autorisés est définie à deux endroits qui doivent rester synchronisés :
-- `lib/firebase.js` (`ALLOWED_EMAILS`) — contrôle l'accès côté application.
-- `firebase.rules.json` — contrôle l'accès côté base de données (la vraie sécurité).
-
-Pour ajouter ou retirer quelqu'un :
-1. Modifiez `ALLOWED_EMAILS` dans `lib/firebase.js` et la même liste dans `firebase.rules.json`, puis déployez (push sur `main`).
-2. **Copiez le contenu de `firebase.rules.json` dans Firebase Console > Realtime Database > Rules, puis cliquez sur Publier.** Ce fichier n'est pas déployé automatiquement — c'est la seule étape manuelle indispensable, sans elle la personne ajoutée aura une erreur de permission malgré le code à jour.
+**Étape manuelle indispensable après toute modification de `firebase.rules.json`** : copiez son contenu dans Firebase Console > Realtime Database > Rules, puis cliquez sur **Publier**. Ce fichier n'est pas déployé automatiquement depuis GitHub/Vercel.
 
 ## Déploiement Vercel
 
@@ -55,12 +45,11 @@ Pour ajouter ou retirer quelqu'un :
 2. Importez le dépôt dans Vercel.
 3. Ajoutez dans Vercel les variables listées dans `.env.local.example` avec les valeurs de `.env.local`.
 4. Déployez.
-5. Ajoutez votre domaine Vercel dans Firebase Console > Authentication > Settings > Authorized domains si nécessaire.
 
 ## Bibliothèque de prompts prédéfinis
 
-224 prompts prêts à l'emploi (styles, photographie, rendu 3D, lumière, branding, univers, commandes ChatGPT...) sont disponibles dans `lib/seedPrompts.js`. Une fois connecté avec un compte autorisé, un bouton **« Importer N prompts prédéfinis »** apparaît dans la barre latérale tant qu'il en manque : il écrit directement les prompts manquants dans la bibliothèque partagée via votre session Firebase déjà authentifiée (donc respecte les règles RTDB, sans exposer aucune clé). Chaque prompt a un identifiant fixe : l'import peut être relancé sans jamais créer de doublons.
+224 prompts prêts à l'emploi (styles, photographie, rendu 3D, lumière, branding, univers, commandes ChatGPT...) sont disponibles dans `lib/seedPrompts.js`. Un bouton **« Importer N prompts prédéfinis »** apparaît dans la barre latérale tant qu'il en manque : il écrit directement les prompts manquants dans la bibliothèque partagée. Chaque prompt a un identifiant fixe : l'import peut être relancé sans jamais créer de doublons.
 
 ## Important
 
-Les variables `NEXT_PUBLIC_FIREBASE_*` sont destinées au client et ne doivent pas être considérées comme des secrets. La sécurité des données repose sur Firebase Authentication et les règles Realtime Database.
+Les variables `NEXT_PUBLIC_FIREBASE_*` sont destinées au client et ne doivent pas être considérées comme des secrets. Sans authentification, la sécurité des données repose uniquement sur la confidentialité de l'URL de l'application et sur les règles Realtime Database — voir l'avertissement ci-dessus.
